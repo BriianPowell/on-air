@@ -1,0 +1,9 @@
+{
+  "go.alternateTools": {
+    "go": "${env:HOME}/.goenv/shims/go"
+  },
+  "go.toolsManagement.go": "${env:HOME}/.goenv/shims/go",
+  "terminal.integrated.env.osx": {
+    "PATH": "${env:HOME}/.goenv/shims:${env:HOME}/.goenv/bin:${env:PATH}"
+  }
+}

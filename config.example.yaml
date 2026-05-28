@@ -1,0 +1,17 @@
+device: brian-mac
+
+mqtt:
+  broker: tcp://localhost:1883
+  topic: on-air/brian-mac
+  client_id: on-air-agent-brian-mac
+  username: ""
+  password: ""
+
+# How often to poll mic/camera state.
+poll_interval: 1s
+
+# Mic or camera must be active this long before turning the sign on.
+on_debounce: 3s
+
+# Both must be idle this long before turning the sign off.
+off_debounce: 10s

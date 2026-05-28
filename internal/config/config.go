@@ -1,0 +1,85 @@
+package config
+
+import (
+	"fmt"
+	"os"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
+
+type MQTT struct {
+	Broker   string `yaml:"broker"`
+	Topic    string `yaml:"topic"`
+	ClientID string `yaml:"client_id"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+type Config struct {
+	Device       string        `yaml:"device"`
+	MQTT         MQTT          `yaml:"mqtt"`
+	PollInterval time.Duration `yaml:"poll_interval"`
+	OnDebounce   time.Duration `yaml:"on_debounce"`
+	OffDebounce  time.Duration `yaml:"off_debounce"`
+}
+
+func Load(path string) (Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, fmt.Errorf("read config: %w", err)
+	}
+
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return Config{}, fmt.Errorf("parse config: %w", err)
+	}
+
+	cfg.ApplyDefaults()
+
+	if err := cfg.validate(); err != nil {
+		return Config{}, err
+	}
+
+	return cfg, nil
+}
+
+func Default(device string) Config {
+	cfg := Config{Device: device}
+	cfg.ApplyDefaults()
+	return cfg
+}
+
+func (c *Config) ApplyDefaults() {
+	if c.PollInterval == 0 {
+		c.PollInterval = time.Second
+	}
+	if c.OnDebounce == 0 {
+		c.OnDebounce = 3 * time.Second
+	}
+	if c.OffDebounce == 0 {
+		c.OffDebounce = 10 * time.Second
+	}
+	if c.MQTT.Broker == "" {
+		c.MQTT.Broker = "tcp://localhost:1883"
+	}
+	if c.MQTT.Topic == "" && c.Device != "" {
+		c.MQTT.Topic = "on-air/" + c.Device
+	}
+	if c.MQTT.ClientID == "" && c.Device != "" {
+		c.MQTT.ClientID = "on-air-agent-" + c.Device
+	}
+}
+
+func (c Config) validate() error {
+	if c.Device == "" {
+		return fmt.Errorf("device is required")
+	}
+	if c.MQTT.Topic == "" {
+		return fmt.Errorf("mqtt.topic is required")
+	}
+	if c.MQTT.ClientID == "" {
+		return fmt.Errorf("mqtt.client_id is required")
+	}
+	return nil
+}

@@ -1,0 +1,25 @@
+# https://github.com/mgechev/revive
+severity = "warning"
+confidence = 0.8
+
+[rule.blank-imports]
+[rule.context-as-argument]
+[rule.context-keys-type]
+[rule.dot-imports]
+[rule.error-return]
+[rule.error-strings]
+[rule.error-naming]
+[rule.increment-decrement]
+[rule.range-val-in-closure]
+[rule.receiver-naming]
+[rule.time-naming]
+[rule.unexported-return]
+[rule.indent-error-flow]
+[rule.errorf]
+
+# Noisy for small/personal projects — enable as the codebase grows.
+[rule.exported]
+  Disabled = true
+
+[rule.package-comments]
+  Disabled = true
