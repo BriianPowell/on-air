@@ -116,9 +116,9 @@ func (a *Agent) shouldPublish(nextOnAir bool, status detect.Status, onAirChanged
 	if onAirChanged {
 		return true
 	}
-	// Republish mic/camera changes mid-call, but skip the off-debounce wind-down
-	// where hardware is idle while on_air is still true internally.
-	if nextOnAir && status.OnAir() && status != a.lastPublished {
+	// Republish mic/camera changes while still on-air internally (including
+	// during off-debounce, e.g. mute on an audio-only call).
+	if nextOnAir && status != a.lastPublished {
 		return true
 	}
 	return false

@@ -40,10 +40,51 @@ go run ./cmd/on-air-agent
 
 See `config.example.yaml`. Key fields:
 
-- `device` — identifier used in MQTT topic and JSON payload
-- `mqtt.broker` — e.g. `tcp://192.168.1.10:1883`
-- `mqtt.topic` — retained status topic the ESP8266 subscribes to
+- `device` — unique ID for this laptop/person (used in topic and JSON)
+- `mqtt.broker` — e.g. `tcp://homeassistant.local:1883`
+- `mqtt.topic` — defaults to `on-air/{device}` if omitted
 - `on_debounce` / `off_debounce` — avoid flicker when muting/unmuting
+
+## Multi-user sign
+
+One agent per laptop. Each person gets their own MQTT topic and LED zone on the same physical sign.
+
+```
+brian-mac (agent) ──► on-air/brian-mac ──┐
+                                         ├──► Mosquitto (HA) ──► ESP8266 sign
+jane-win  (agent) ──► on-air/jane-win  ──┘         └──► HA dashboard (optional)
+```
+
+| Laptop | `device` | `mqtt.topic` |
+|--------|----------|--------------|
+| Brian MacBook | `brian-mac` | `on-air/brian-mac` |
+| Jane Windows | `jane-win` | `on-air/jane-win` |
+
+Each agent publishes **independently** with the retain flag, so the sign always knows everyone's last state — even if one laptop is offline.
+
+The ESP8266 subscribes to `on-air/#`, uses the **topic suffix** (e.g. `brian-mac`) to identify who updated, and maps that to a LED zone in firmware.
+
+### Home Assistant
+
+Create one MQTT sensor per person (Developer Tools → MQTT to sniff topics first):
+
+```yaml
+mqtt:
+  sensor:
+    - name: "Brian on air"
+      state_topic: "on-air/brian-mac"
+      value_template: "{{ value_json.on_air }}"
+      json_attributes_topic: "on-air/brian-mac"
+      json_attributes_template: "{{ value_json | tojson }}"
+
+    - name: "Jane on air"
+      state_topic: "on-air/jane-win"
+      value_template: "{{ value_json.on_air }}"
+      json_attributes_topic: "on-air/jane-win"
+      json_attributes_template: "{{ value_json | tojson }}"
+```
+
+Attributes include `mic_active` and `camera_active` for automations or the dashboard.
 
 ## MQTT payload
 
@@ -67,7 +108,7 @@ The agent publishes when:
 
 ## LED color matrix
 
-Drive colors from `mic_active` and `camera_active` on the ESP8266 — not `on_air` alone.
+Drive colors from `mic_active` and `camera_active` per person — not `on_air` alone. The ESP applies the matrix independently to each zone (mapped from the MQTT topic).
 
 | `camera_active` | `mic_active` | Meaning | Suggested RGB | Through white sign |
 |:-:|:-:|-|-|-|
@@ -91,10 +132,48 @@ Tune brightness (e.g. cap at 30–40% / `(80, 0, 0)` instead of 255) if the sign
 
 `mic_active` reflects **hardware capture**, not meeting-app mute state. Many apps release the mic when muted, so a muted video call often reports `mic_active=false` and maps to **amber**, not red. That is expected with the current detector.
 
+### Zoom waiting room
+
+Zoom can show the mic as **unmuted in the UI** while you are still in the waiting room, but macOS may not open the mic for capture until you are admitted to the meeting. If the OS has not started an input stream, `mic_active` stays false even though Zoom's button looks "on". Camera preview in the waiting room *does* typically open the camera — which matches `camera_active=true` with `mic_active=false`.
+
+The macOS detector checks CoreAudio **process input streams** first (which app is actually capturing), then falls back to device state.
+
 ## Platform support
 
-- **macOS** — CoreAudio mic detection + CoreMediaIO camera detection
-- **Windows** — stub (not implemented yet)
+Detection is **OS-level and app-agnostic** — we watch whether the mic or camera hardware is actively in use, not whether a specific app is in the foreground. That means Zoom, Teams, Slack huddles, FaceTime, etc. all work without per-app integration, as long as the app actually opens capture at the OS level.
+
+### Target applications
+
+| Platform | Apps | Typical signals |
+|----------|------|-----------------|
+| **macOS** | Slack huddles, Zoom, Microsoft Teams | Huddles: mic only. Zoom/Teams calls: mic + camera |
+| **Windows** | Zoom, Microsoft Teams | Mic + camera during calls |
+
+### Implementation status
+
+| Platform | Mic | Camera | Status |
+|----------|-----|--------|--------|
+| **macOS** | CoreAudio process input streams, device fallback | CoreMediaIO `DeviceIsRunningSomewhere` | Working |
+| **Windows** | WASAPI active capture sessions (planned) | Media/device enumeration (planned) | Not implemented |
+
+### macOS
+
+Uses CoreAudio **process input streams** first (`kAudioProcessPropertyIsRunningInput`), then falls back to input device state. Camera uses CoreMediaIO. No Slack/Zoom/Teams-specific code — if the app opens hardware, we detect it.
+
+### Windows
+
+Stub only today. Planned approach mirrors macOS: app-agnostic hardware detection via WASAPI (mic) and Windows camera APIs, not per-app hooks. Same JSON payload and agent logic on both platforms.
+
+### Known limitations (all apps)
+
+These apply to every target app on both platforms:
+
+- **App mute ≠ hardware idle** — many apps release the mic when you mute in-meeting, so `mic_active` may be false during a muted call (sign shows amber, not red).
+- **Pre-join / waiting room** — apps often open the camera for preview but defer mic capture until you are admitted (e.g. Zoom waiting room: `camera_active=true`, `mic_active=false`).
+- **Slack huddles** — audio-only; expect `mic_active=true`, `camera_active=false` (green on the sign).
+- **Bluetooth / virtual devices** — some headsets and virtual devices report state inconsistently at the OS level.
+
+Grant the agent **Microphone** and **Camera** privacy permissions on macOS (System Settings → Privacy & Security). Windows will need equivalent permissions once detection is implemented.
 
 ## Build
 

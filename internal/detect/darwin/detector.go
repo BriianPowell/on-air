@@ -100,18 +100,87 @@ static int cameraInUse(void) {
 	return inUse;
 }
 
-static int micInUse(void) {
-	AudioObjectPropertyAddress propertyAddress = {
+static int micInUseFromProcesses(void) {
+	AudioObjectPropertyAddress address = {
+		kAudioHardwarePropertyProcessObjectList,
 		kAudioObjectPropertyScopeGlobal,
 		kAudioObjectPropertyElementMain
 	};
 
-	propertyAddress.mSelector = kAudioHardwarePropertyDevices;
+	UInt32 dataSize = 0;
+	OSStatus status = AudioObjectGetPropertyDataSize(
+		kAudioObjectSystemObject,
+		&address,
+		0,
+		NULL,
+		&dataSize
+	);
+	if (status != noErr) {
+		return -1;
+	}
+	if (dataSize == 0) {
+		return 0;
+	}
+
+	AudioObjectID *processes = (AudioObjectID *)malloc(dataSize);
+	if (processes == NULL) {
+		return -1;
+	}
+
+	status = AudioObjectGetPropertyData(
+		kAudioObjectSystemObject,
+		&address,
+		0,
+		NULL,
+		&dataSize,
+		processes
+	);
+	if (status != noErr) {
+		free(processes);
+		return -1;
+	}
+
+	int processCount = (int)(dataSize / sizeof(AudioObjectID));
+	int inUse = 0;
+
+	for (int i = 0; i < processCount; i++) {
+		AudioObjectPropertyAddress runningInputAddress = {
+			kAudioProcessPropertyIsRunningInput,
+			kAudioObjectPropertyScopeGlobal,
+			kAudioObjectPropertyElementMain
+		};
+
+		UInt32 isRunning = 0;
+		UInt32 runningSize = sizeof(isRunning);
+		status = AudioObjectGetPropertyData(
+			processes[i],
+			&runningInputAddress,
+			0,
+			NULL,
+			&runningSize,
+			&isRunning
+		);
+		if (status == noErr && isRunning) {
+			inUse = 1;
+			break;
+		}
+	}
+
+	free(processes);
+	return inUse;
+}
+
+static int micInUseFromDevices(void) {
+	AudioObjectPropertyAddress address = {
+		kAudioHardwarePropertyDevices,
+		kAudioObjectPropertyScopeGlobal,
+		kAudioObjectPropertyElementMain
+	};
 
 	UInt32 dataSize = 0;
 	OSStatus status = AudioObjectGetPropertyDataSize(
 		kAudioObjectSystemObject,
-		&propertyAddress,
+		&address,
 		0,
 		NULL,
 		&dataSize
@@ -127,7 +196,7 @@ static int micInUse(void) {
 
 	status = AudioObjectGetPropertyData(
 		kAudioObjectSystemObject,
-		&propertyAddress,
+		&address,
 		0,
 		NULL,
 		&dataSize,
@@ -142,11 +211,12 @@ static int micInUse(void) {
 	int inUse = 0;
 
 	for (int i = 0; i < deviceCount; i++) {
-		propertyAddress.mSelector = kAudioDevicePropertyStreamConfiguration;
-		propertyAddress.mScope = kAudioDevicePropertyScopeInput;
+		address.mSelector = kAudioDevicePropertyStreamConfiguration;
+		address.mScope = kAudioDevicePropertyScopeInput;
+		address.mElement = kAudioObjectPropertyElementMain;
 
 		dataSize = 0;
-		status = AudioObjectGetPropertyDataSize(devices[i], &propertyAddress, 0, NULL, &dataSize);
+		status = AudioObjectGetPropertyDataSize(devices[i], &address, 0, NULL, &dataSize);
 		if (status != noErr || dataSize == 0) {
 			continue;
 		}
@@ -156,7 +226,7 @@ static int micInUse(void) {
 			continue;
 		}
 
-		status = AudioObjectGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, bufferList);
+		status = AudioObjectGetPropertyData(devices[i], &address, 0, NULL, &dataSize, bufferList);
 		if (status != noErr) {
 			free(bufferList);
 			continue;
@@ -172,12 +242,23 @@ static int micInUse(void) {
 			continue;
 		}
 
-		propertyAddress.mSelector = kAudioDevicePropertyDeviceIsRunningSomewhere;
-		propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
+		address.mSelector = kAudioDevicePropertyDeviceIsRunning;
+		address.mScope = kAudioDevicePropertyScopeInput;
 
 		UInt32 isRunning = 0;
 		dataSize = sizeof(isRunning);
-		status = AudioObjectGetPropertyData(devices[i], &propertyAddress, 0, NULL, &dataSize, &isRunning);
+		status = AudioObjectGetPropertyData(devices[i], &address, 0, NULL, &dataSize, &isRunning);
+		if (status == noErr && isRunning) {
+			inUse = 1;
+			break;
+		}
+
+		address.mSelector = kAudioDevicePropertyDeviceIsRunningSomewhere;
+		address.mScope = kAudioObjectPropertyScopeGlobal;
+
+		isRunning = 0;
+		dataSize = sizeof(isRunning);
+		status = AudioObjectGetPropertyData(devices[i], &address, 0, NULL, &dataSize, &isRunning);
 		if (status == noErr && isRunning) {
 			inUse = 1;
 			break;
@@ -186,6 +267,14 @@ static int micInUse(void) {
 
 	free(devices);
 	return inUse;
+}
+
+static int micInUse(void) {
+	int fromProcesses = micInUseFromProcesses();
+	if (fromProcesses >= 0) {
+		return fromProcesses;
+	}
+	return micInUseFromDevices();
 }
 */
 import "C"

@@ -1,11 +1,12 @@
+# Unique ID for this laptop/person. Used in the MQTT topic and JSON payload.
 device: brian-mac
 
 mqtt:
-  broker: tcp://localhost:1883
+  broker: tcp://homeassistant.local:1883
   topic: on-air/brian-mac
   client_id: on-air-agent-brian-mac
-  username: ""
-  password: ""
+  username: ''
+  password: ''
 
 # How often to poll mic/camera state.
 poll_interval: 1s
@@ -15,3 +16,10 @@ on_debounce: 3s
 
 # Both must be idle this long before turning the sign off.
 off_debounce: 10s
+
+# Multi-user setup: run one agent per laptop, each with a unique device/topic:
+#
+#   brian-mac  -> topic: on-air/brian-mac
+#   lauren-win   -> topic: on-air/lauren-win
+#
+# The ESP8266 subscribes to on-air/# and maps each topic to a LED zone in firmware.

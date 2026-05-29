@@ -112,15 +112,27 @@ func TestShouldPublishOnActiveStateChangeWhileOnAir(t *testing.T) {
 	}
 }
 
-func TestShouldNotPublishDuringOffDebounceWindDown(t *testing.T) {
+func TestShouldPublishMicMuteDuringAudioOnlyCall(t *testing.T) {
+	a := New(config.Default("test"), fakeDetector{}, nil)
+	a.onAir = true
+	a.published = true
+	a.lastPublished = detect.Status{MicActive: true}
+
+	status := detect.Status{}
+	if !a.shouldPublish(true, status, false) {
+		t.Fatal("expected publish when mic mutes on an audio-only call")
+	}
+}
+
+func TestShouldPublishWhenHardwareGoesIdleDuringOffDebounce(t *testing.T) {
 	a := New(config.Default("test"), fakeDetector{}, nil)
 	a.onAir = true
 	a.published = true
 	a.lastPublished = detect.Status{CameraActive: true}
 
 	status := detect.Status{}
-	if a.shouldPublish(true, status, false) {
-		t.Fatal("expected no publish when hardware idle during off debounce")
+	if !a.shouldPublish(true, status, false) {
+		t.Fatal("expected publish when hardware goes idle during off debounce")
 	}
 }
 
