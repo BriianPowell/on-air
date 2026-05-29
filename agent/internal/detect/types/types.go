@@ -1,4 +1,4 @@
-package detect
+package types
 
 // Status is a snapshot of local media device usage.
 type Status struct {

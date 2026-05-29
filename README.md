@@ -2,6 +2,15 @@
 
 Status agent that detects mic/camera usage on your work laptop and publishes an on-air signal for an ESP8266 sign.
 
+## Repository layout
+
+```
+on-air/
+├── agent/       # Go status agent (MQTT publisher)
+├── firmware/    # ESP8266 sign firmware
+└── deploy/      # launchd + Task Scheduler examples
+```
+
 ## Quick start
 
 1. Install Go with [goenv](https://github.com/go-nv/goenv):
@@ -15,6 +24,7 @@ go version             # should report go1.26.3
 1. Copy the example config and edit it:
 
 ```bash
+cd agent
 cp config.example.yaml config.yaml
 ```
 
@@ -36,9 +46,11 @@ go run ./cmd/on-air-agent --once
 go run ./cmd/on-air-agent
 ```
 
+From the repo root (via `go.work`): `go run ./agent/cmd/on-air-agent …`
+
 ## Config
 
-See `config.example.yaml`. Key fields:
+See `agent/config.example.yaml`. Key fields:
 
 - `device` — unique ID for this laptop/person (used in topic and JSON)
 - `mqtt.broker` — `tcp://` for local LAN; `ssl://host:443` for TLS (e.g. over work VPN when 8883 is blocked)
@@ -62,6 +74,8 @@ lauren-win (agent) ──► on-air/lauren-win ──┘         └──► HA
 | Lauren Windows | `lauren-win` | `on-air/lauren-win` |
 
 Each agent publishes independently with the retain flag, so the sign always knows everyone's last state — even if one laptop is offline.
+
+Firmware for the ESP8266 sign lives in [`firmware/esp8266/`](firmware/esp8266/README.md).
 
 ### Home Assistant
 
@@ -181,7 +195,7 @@ Unsigned CI binaries may be blocked by Gatekeeper — run `xattr -dr com.apple.q
 1. Install the binary (from CI or local build):
 
 ```bash
-# CI artifact already on disk as on-air-agent-darwin-arm64, or:
+cd agent
 go build -o on-air-agent ./cmd/on-air-agent
 sudo install -m 755 on-air-agent /usr/local/bin/on-air-agent   # or the darwin-* name
 mkdir -p ~/.config/on-air
@@ -219,6 +233,7 @@ copy config.example.yaml "$env:USERPROFILE\.config\on-air\config.yaml"
 Or build locally:
 
 ```bash
+cd agent
 GOOS=windows GOARCH=amd64 go build -o on-air-agent.exe ./cmd/on-air-agent
 ```
 
@@ -234,18 +249,20 @@ Remove: `schtasks /Delete /TN "on-air-agent" /F`
 ## Build
 
 ```bash
+cd agent
 go build -o on-air-agent ./cmd/on-air-agent
 ```
 
 Cross-compile for Windows from macOS:
 
 ```bash
+cd agent
 GOOS=windows GOARCH=amd64 go build -o on-air-agent.exe ./cmd/on-air-agent
 ```
 
 ### CI
 
-Pull requests run `.github/workflows/ci.yml`, mirroring pre-commit:
+Pull requests run `.github/workflows/ci.yml` in `agent/`, mirroring pre-commit:
 
 | Step | Command |
 |------|---------|
@@ -270,7 +287,7 @@ Download from the workflow run → **Artifacts** section on GitHub.
 
 ## Pre-commit
 
-Uses [pre-commit-golang](https://github.com/TekWizely/pre-commit-golang) for Go checks on each commit. Revive uses a local hook with `go tool revive` (pinned via `tool` in `go.mod`).
+Uses [pre-commit-golang](https://github.com/TekWizely/pre-commit-golang) for Go checks on each commit (scoped to `agent/`). Revive uses a local hook with `go tool revive` (pinned via `tool` in `agent/go.mod`).
 
 | Hook | What it does |
 |------|--------------|
@@ -285,8 +302,8 @@ Setup:
 
 ```bash
 brew install pre-commit   # or: pip install pre-commit
-go mod download            # installs pinned tools (see `tool` in go.mod)
-pre-commit install
+cd agent && go mod download   # installs pinned tools (see `tool` in go.mod)
+cd .. && pre-commit install
 ```
 
 Run manually against the whole repo:

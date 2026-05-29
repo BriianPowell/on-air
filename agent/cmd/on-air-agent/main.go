@@ -42,7 +42,7 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	detector := newDetector()
+	detector := detect.New()
 
 	if *once {
 		status, err := detector.Poll()

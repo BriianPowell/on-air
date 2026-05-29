@@ -1,3 +1,8 @@
-config.yaml
+agent/config.yaml
 /on-air-agent
 /on-air-agent.exe
+/agent/on-air-agent
+/agent/on-air-agent.exe
+/agent/dist
+firmware/esp8266/include/config.h
+firmware/esp8266/.pio

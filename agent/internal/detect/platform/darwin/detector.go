@@ -282,7 +282,7 @@ static int micInUse(void) {
 import "C"
 
 import (
-	"github.com/brianpowell/on-air/internal/detect"
+	"github.com/brianpowell/on-air/internal/detect/types"
 )
 
 type Detector struct{}
@@ -291,8 +291,8 @@ func New() *Detector {
 	return &Detector{}
 }
 
-func (d *Detector) Poll() (detect.Status, error) {
-	return detect.Status{
+func (d *Detector) Poll() (types.Status, error) {
+	return types.Status{
 		MicActive:    C.micInUse() != 0,
 		CameraActive: C.cameraInUse() != 0,
 	}, nil

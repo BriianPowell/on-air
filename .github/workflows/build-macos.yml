@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: agent
+
 jobs:
   test:
     runs-on: macos-latest
@@ -16,8 +20,8 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: .go-version
-          cache: true
+          go-version-file: agent/.go-version
+          cache-dependency-path: agent/go.sum
 
       - name: Test
         run: go test ./...
@@ -25,13 +29,16 @@ jobs:
   build:
     needs: test
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: agent
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: .go-version
-          cache: true
+          go-version-file: agent/.go-version
+          cache-dependency-path: agent/go.sum
 
       - name: Build darwin/arm64
         env:
@@ -49,4 +56,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: on-air-agent-macos
-          path: dist/on-air-agent-darwin-*
+          path: agent/dist/on-air-agent-darwin-*
