@@ -19,25 +19,25 @@ Wire data to `D4`, share ground with the ESP, and power the strip separately if 
 
 2. Copy config:
 
-```bash
-cd firmware/esp8266
-cp include/config.example.h include/config.h
-```
+    ```bash
+    cd firmware/esp8266
+    cp include/config.example.h include/config.h
+    ```
 
 3. Edit `include/config.h`:
 
-- Wi-Fi credentials
-- MQTT broker IP (local LAN — same broker your ESP8266 can reach without TLS)
-- MQTT username/password
-- `kZones` — topic suffix → LED range mapping
-- `LED_COUNT` — total pixels on the strip
+    - Wi-Fi credentials
+    - MQTT broker IP (local LAN — same broker your ESP8266 can reach without TLS)
+    - MQTT username/password
+    - `kZones` — topic suffix → LED range mapping
+    - `LED_COUNT` — total pixels on the strip
 
 4. Build and upload:
 
-```bash
-pio run -t upload
-pio device monitor
-```
+    ```bash
+    pio run -t upload
+    pio device monitor
+    ```
 
 ## Zone mapping
 
@@ -45,8 +45,8 @@ Agents publish to `on-air/brian-mac`, `on-air/lauren-win`, etc. Map each suffix 
 
 ```cpp
 static const ZoneConfig kZones[] = {
-	{"brian-mac", 0, 1},   // pixel 0
-	{"lauren-win", 1, 1},  // pixel 1
+    {"brian-mac", 0, 1},   // pixel 0
+    {"lauren-win", 1, 1},  // pixel 1
 };
 ```
 
