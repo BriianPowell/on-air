@@ -24,7 +24,7 @@ cp config.example.yaml config.yaml
 go run ./cmd/on-air-agent --dry-run
 ```
 
-1. Single poll (useful for debugging):
+1. Single poll:
 
 ```bash
 go run ./cmd/on-air-agent --once
@@ -43,26 +43,24 @@ See `config.example.yaml`. Key fields:
 - `device` — unique ID for this laptop/person (used in topic and JSON)
 - `mqtt.broker` — e.g. `tcp://homeassistant.local:1883`
 - `mqtt.topic` — defaults to `on-air/{device}` if omitted
-- `on_debounce` / `off_debounce` — avoid flicker when muting/unmuting
+- `on_debounce` / `off_debounce` — avoid flicker when hardware state flaps
 
 ## Multi-user sign
 
-One agent per laptop. Each person gets their own MQTT topic and LED zone on the same physical sign.
+One agent per laptop. Each person gets their own MQTT topic; the ESP8266 maps topic suffixes to LED zones in firmware.
 
 ```
 brian-mac (agent) ──► on-air/brian-mac ──┐
                                          ├──► Mosquitto (HA) ──► ESP8266 sign
-jane-win  (agent) ──► on-air/jane-win  ──┘         └──► HA dashboard (optional)
+lauren-win (agent) ──► on-air/lauren-win ──┘         └──► HA dashboard (optional)
 ```
 
 | Laptop | `device` | `mqtt.topic` |
 |--------|----------|--------------|
 | Brian MacBook | `brian-mac` | `on-air/brian-mac` |
-| Jane Windows | `jane-win` | `on-air/jane-win` |
+| Lauren Windows | `lauren-win` | `on-air/lauren-win` |
 
-Each agent publishes **independently** with the retain flag, so the sign always knows everyone's last state — even if one laptop is offline.
-
-The ESP8266 subscribes to `on-air/#`, uses the **topic suffix** (e.g. `brian-mac`) to identify who updated, and maps that to a LED zone in firmware.
+Each agent publishes independently with the retain flag, so the sign always knows everyone's last state — even if one laptop is offline.
 
 ### Home Assistant
 
@@ -77,10 +75,10 @@ mqtt:
       json_attributes_topic: "on-air/brian-mac"
       json_attributes_template: "{{ value_json | tojson }}"
 
-    - name: "Jane on air"
-      state_topic: "on-air/jane-win"
+    - name: "Lauren on air"
+      state_topic: "on-air/lauren-win"
       value_template: "{{ value_json.on_air }}"
-      json_attributes_topic: "on-air/jane-win"
+      json_attributes_topic: "on-air/lauren-win"
       json_attributes_template: "{{ value_json | tojson }}"
 ```
 
@@ -103,77 +101,35 @@ Messages are published with QoS 1 and the retain flag so new subscribers get the
 The agent publishes when:
 
 - The debounced `on_air` state changes (after `on_debounce` / `off_debounce`)
-- `mic_active` or `camera_active` changes while hardware is still active (mid-call LED color updates)
-- Not during the off-debounce wind-down when both are idle but `on_air` is still true internally — the final `on_air=false` publish covers that
+- `mic_active` or `camera_active` changes while still considered on-air internally
 
 ## LED color matrix
 
-Drive colors from `mic_active` and `camera_active` per person — not `on_air` alone. The ESP applies the matrix independently to each zone (mapped from the MQTT topic).
+Drive colors from `mic_active` and `camera_active` per person — not `on_air` alone.
 
-| `camera_active` | `mic_active` | Meaning | Suggested RGB | Through white sign |
-|:-:|:-:|-|-|-|
-| true | true | Live video call, mic capturing | `(255, 0, 0)` | Classic broadcast red |
-| true | false | Video on, mic not capturing | `(255, 140, 0)` | Warm amber — often a muted video call |
-| false | true | Audio-only call | `(0, 180, 60)` | Soft green |
-| false | false | Off / idle | `(0, 0, 0)` | LEDs off (or `(30, 20, 15)` for a faint warm glow) |
+| `camera_active` | `mic_active` | Color | Suggested RGB |
+|:-:|:-:|-|-|
+| true | true | Red | `(255, 0, 0)` |
+| true | false | Amber | `(255, 140, 0)` |
+| false | true | Green | `(0, 180, 60)` |
+| false | false | Off | `(0, 0, 0)` |
 
-### Color notes
+These values assume WS2812-style RGB LEDs behind a white diffuser. Tune brightness down (e.g. cap red at `(80, 0, 0)`) if the sign is too bright at night.
 
-These values assume WS2812-style RGB LEDs behind a white diffuser (acrylic, 3D-printed panel, or vinyl). White material shifts colors toward pastels — higher saturation in config compensates for that.
+## Detection
 
-- **Red `(255, 0, 0)`** — the unmistakable "ON AIR" look; reads clearly through white
-- **Amber `(255, 140, 0)`** — distinct from red, still reads as "busy"; good for camera-on/mic-muted
-- **Green `(0, 180, 60)`** — avoids confusion with red; signals "on a call" without video
-- **Off** — prefer fully off over dim white; a faint glow can look like a fourth state
-
-Tune brightness (e.g. cap at 30–40% / `(80, 0, 0)` instead of 255) if the sign is too bright at night.
-
-### Mic muted during a video call
-
-`mic_active` reflects **hardware capture**, not meeting-app mute state. Many apps release the mic when muted, so a muted video call often reports `mic_active=false` and maps to **amber**, not red. That is expected with the current detector.
-
-### Zoom waiting room
-
-Zoom can show the mic as **unmuted in the UI** while you are still in the waiting room, but macOS may not open the mic for capture until you are admitted to the meeting. If the OS has not started an input stream, `mic_active` stays false even though Zoom's button looks "on". Camera preview in the waiting room *does* typically open the camera — which matches `camera_active=true` with `mic_active=false`.
-
-The macOS detector checks CoreAudio **process input streams** first (which app is actually capturing), then falls back to device state.
-
-## Platform support
-
-Detection is **OS-level and app-agnostic** — we watch whether the mic or camera hardware is actively in use, not whether a specific app is in the foreground. That means Zoom, Teams, Slack huddles, FaceTime, etc. all work without per-app integration, as long as the app actually opens capture at the OS level.
-
-### Target applications
-
-| Platform | Apps | Typical signals |
-|----------|------|-----------------|
-| **macOS** | Slack huddles, Zoom, Microsoft Teams | Huddles: mic only. Zoom/Teams calls: mic + camera |
-| **Windows** | Zoom, Microsoft Teams | Mic + camera during calls |
-
-### Implementation status
+Detection is **OS-level and app-agnostic** — we watch whether the mic or camera hardware is in use, not whether a specific app is in the foreground. Zoom, Teams, Slack huddles, and similar apps work without per-app integration.
 
 | Platform | Mic | Camera | Status |
 |----------|-----|--------|--------|
-| **macOS** | CoreAudio process input streams, device fallback | CoreMediaIO `DeviceIsRunningSomewhere` | Working |
-| **Windows** | WASAPI active capture sessions (planned) | Media/device enumeration (planned) | Not implemented |
+| **macOS** | CoreAudio process input streams, device fallback | CoreMediaIO | Working |
+| **Windows** | WASAPI (planned) | Windows camera APIs (planned) | Not implemented |
 
-### macOS
+Target apps: Slack huddles, Zoom, and Microsoft Teams on macOS; Zoom and Teams on Windows.
 
-Uses CoreAudio **process input streams** first (`kAudioProcessPropertyIsRunningInput`), then falls back to input device state. Camera uses CoreMediaIO. No Slack/Zoom/Teams-specific code — if the app opens hardware, we detect it.
+`mic_active` and `camera_active` reflect **hardware capture**, not in-app mute/camera buttons. Some apps keep the mic stream open when muted, so the sign may stay green during a muted audio call. Waiting rooms often open the camera for preview but defer mic capture until you are admitted.
 
-### Windows
-
-Stub only today. Planned approach mirrors macOS: app-agnostic hardware detection via WASAPI (mic) and Windows camera APIs, not per-app hooks. Same JSON payload and agent logic on both platforms.
-
-### Known limitations (all apps)
-
-These apply to every target app on both platforms:
-
-- **App mute ≠ hardware idle** — many apps release the mic when you mute in-meeting, so `mic_active` may be false during a muted call (sign shows amber, not red).
-- **Pre-join / waiting room** — apps often open the camera for preview but defer mic capture until you are admitted (e.g. Zoom waiting room: `camera_active=true`, `mic_active=false`).
-- **Slack huddles** — audio-only; expect `mic_active=true`, `camera_active=false` (green on the sign).
-- **Bluetooth / virtual devices** — some headsets and virtual devices report state inconsistently at the OS level.
-
-Grant the agent **Microphone** and **Camera** privacy permissions on macOS (System Settings → Privacy & Security). Windows will need equivalent permissions once detection is implemented.
+Grant the agent **Microphone** and **Camera** privacy permissions on macOS (System Settings → Privacy & Security).
 
 ## Build
 
@@ -207,8 +163,6 @@ brew install pre-commit   # or: pip install pre-commit
 go mod download            # installs pinned tools (see `tool` in go.mod)
 pre-commit install
 ```
-
-Revive runs via `go tool revive` (pinned in `go.mod`) — no separate `go install` needed.
 
 Run manually against the whole repo:
 

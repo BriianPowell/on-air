@@ -116,8 +116,7 @@ func (a *Agent) shouldPublish(nextOnAir bool, status detect.Status, onAirChanged
 	if onAirChanged {
 		return true
 	}
-	// Republish mic/camera changes while still on-air internally (including
-	// during off-debounce, e.g. mute on an audio-only call).
+	// Republish mic/camera changes while still on-air internally.
 	if nextOnAir && status != a.lastPublished {
 		return true
 	}
