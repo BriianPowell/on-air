@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: agent/.go-version
+          go-version-file: .go-version
           cache-dependency-path: agent/go.sum
 
       - name: Test
@@ -37,7 +37,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: agent/.go-version
+          go-version-file: .go-version
           cache-dependency-path: agent/go.sum
 
       - name: Build windows/amd64
