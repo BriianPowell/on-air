@@ -1,0 +1,52 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .go-version
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+  build:
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .go-version
+          cache: true
+
+      - name: Build darwin/arm64
+        env:
+          CGO_ENABLED: '1'
+          GOARCH: arm64
+        run: go build -ldflags="-s -w" -o dist/on-air-agent-darwin-arm64 ./cmd/on-air-agent
+
+      - name: Build darwin/amd64
+        env:
+          CGO_ENABLED: '1'
+          GOARCH: amd64
+        run: go build -ldflags="-s -w" -o dist/on-air-agent-darwin-amd64 ./cmd/on-air-agent
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: on-air-agent-macos
+          path: dist/on-air-agent-darwin-*

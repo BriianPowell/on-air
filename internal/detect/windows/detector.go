@@ -15,5 +15,18 @@ func New() *Detector {
 }
 
 func (d *Detector) Poll() (detect.Status, error) {
-	return detect.Status{}, fmt.Errorf("windows detection is not implemented yet")
+	micActive, err := micInUse()
+	if err != nil {
+		return detect.Status{}, fmt.Errorf("mic detection: %w", err)
+	}
+
+	cameraActive, err := cameraInUse()
+	if err != nil {
+		return detect.Status{}, fmt.Errorf("camera detection: %w", err)
+	}
+
+	return detect.Status{
+		MicActive:    micActive,
+		CameraActive: cameraActive,
+	}, nil
 }
