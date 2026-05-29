@@ -2,18 +2,40 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
+type MQTTLTLS struct {
+	CAFile             string `yaml:"ca_file"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
+}
+
 type MQTT struct {
-	Broker   string `yaml:"broker"`
-	Topic    string `yaml:"topic"`
-	ClientID string `yaml:"client_id"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Broker   string   `yaml:"broker"`
+	Topic    string   `yaml:"topic"`
+	ClientID string   `yaml:"client_id"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
+	TLS      MQTTLTLS `yaml:"tls"`
+}
+
+// MQTTTLSEnabled reports whether the broker URL uses TLS.
+func (m MQTT) MQTTTLSEnabled() bool {
+	u, err := url.Parse(m.Broker)
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "ssl", "tls", "mqtts", "mqtt+ssl", "tcps":
+		return true
+	default:
+		return false
+	}
 }
 
 type Config struct {

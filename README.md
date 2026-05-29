@@ -41,8 +41,9 @@ go run ./cmd/on-air-agent
 See `config.example.yaml`. Key fields:
 
 - `device` — unique ID for this laptop/person (used in topic and JSON)
-- `mqtt.broker` — e.g. `tcp://homeassistant.local:1883`
+- `mqtt.broker` — `tcp://` for local LAN; `ssl://host:443` for TLS (e.g. over work VPN when 8883 is blocked)
 - `mqtt.topic` — defaults to `on-air/{device}` if omitted
+- `mqtt.tls` — optional `ca_file` / `insecure_skip_verify` overrides
 - `on_debounce` / `off_debounce` — avoid flicker when hardware state flaps
 
 ## Multi-user sign
@@ -172,6 +173,8 @@ Artifacts expire after 90 days (GitHub default). For tagged releases with perman
 **Option B — build locally** (see [Build](#build) below).
 
 Pull request CI (`.github/workflows/ci.yml`) only validates code — it does not publish installable binaries.
+
+Unsigned CI binaries may be blocked by Gatekeeper — run `xattr -dr com.apple.quarantine` on the downloaded binary, or build locally with `go build`.
 
 ### macOS (launchd)
 

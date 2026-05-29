@@ -27,12 +27,22 @@ type Publisher struct {
 }
 
 func New(cfg config.MQTT, device string) (*Publisher, error) {
+	broker, tlsConfig, err := brokerOptions(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	opts := pahomqtt.NewClientOptions().
-		AddBroker(cfg.Broker).
+		AddBroker(broker).
 		SetClientID(cfg.ClientID).
 		SetAutoReconnect(true).
-		SetConnectRetry(true).
-		SetConnectRetryInterval(5 * time.Second)
+		// Fail fast on initial connect; AutoReconnect handles drops after connected.
+		SetConnectRetry(false).
+		SetConnectTimeout(30 * time.Second)
+
+	if tlsConfig != nil {
+		opts.SetTLSConfig(tlsConfig)
+	}
 
 	if cfg.Username != "" {
 		opts.SetUsername(cfg.Username)
@@ -41,11 +51,11 @@ func New(cfg config.MQTT, device string) (*Publisher, error) {
 
 	client := pahomqtt.NewClient(opts)
 	token := client.Connect()
-	if !token.WaitTimeout(10 * time.Second) {
-		return nil, fmt.Errorf("mqtt connect timed out")
+	if !token.WaitTimeout(30 * time.Second) {
+		return nil, fmt.Errorf("mqtt connect timed out connecting to %s", broker)
 	}
 	if err := token.Error(); err != nil {
-		return nil, fmt.Errorf("mqtt connect: %w", err)
+		return nil, fmt.Errorf("mqtt connect to %s: %w", broker, err)
 	}
 
 	return &Publisher{
