@@ -5,6 +5,7 @@
 #include <PubSubClient.h>
 
 #include "config.h"
+#include "protocol.h"
 
 namespace {
 
@@ -28,39 +29,12 @@ uint32_t scaleColor(uint8_t r, uint8_t g, uint8_t b) {
 	return strip.Color(r, g, b);
 }
 
-void colorForStatus(bool mic, bool camera, uint8_t &r, uint8_t &g, uint8_t &b) {
-	if (camera && mic) {
-		r = 255;
-		g = 0;
-		b = 0;
-	} else if (camera) {
-		r = 255;
-		g = 140;
-		b = 0;
-	} else if (mic) {
-		r = 0;
-		g = 180;
-		b = 60;
-	} else {
-		r = 0;
-		g = 0;
-		b = 0;
-	}
-}
-
 int zoneIndexForTopic(const char *topic) {
-	const char *prefix = "on-air/";
-	if (strncmp(topic, prefix, strlen(prefix)) != 0) {
-		return -1;
-	}
-
-	const char *suffix = topic + strlen(prefix);
+	const char *suffixes[kZoneCount];
 	for (size_t i = 0; i < kZoneCount; i++) {
-		if (strcmp(suffix, kZones[i].topicSuffix) == 0) {
-			return static_cast<int>(i);
-		}
+		suffixes[i] = kZones[i].topicSuffix;
 	}
-	return -1;
+	return onair::zoneIndexForTopic(topic, suffixes, kZoneCount);
 }
 
 bool parseBoolField(JsonDocument &doc, const char *key) {
@@ -72,19 +46,15 @@ bool parseBoolField(JsonDocument &doc, const char *key) {
 
 void applyZoneColor(size_t zoneIndex) {
 	const ZoneConfig &zone = kZones[zoneIndex];
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
+	const onair::Color color = zones[zoneIndex].known
+		? onair::colorFor(zones[zoneIndex].micActive, zones[zoneIndex].cameraActive)
+		: onair::Color{};
 
-	if (zones[zoneIndex].known) {
-		colorForStatus(zones[zoneIndex].micActive, zones[zoneIndex].cameraActive, r, g, b);
-	}
-
-	const uint32_t color = scaleColor(r, g, b);
+	const uint32_t pixelColor = scaleColor(color.r, color.g, color.b);
 	for (uint16_t i = 0; i < zone.ledCount; i++) {
 		const uint16_t pixel = zone.ledFirst + i;
 		if (pixel < LED_COUNT) {
-			strip.setPixelColor(pixel, color);
+			strip.setPixelColor(pixel, pixelColor);
 		}
 	}
 }
@@ -110,8 +80,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
 	}
 
 	zones[zoneIndex].known = true;
-	zones[zoneIndex].micActive = parseBoolField(doc, "mic_active");
-	zones[zoneIndex].cameraActive = parseBoolField(doc, "camera_active");
+	zones[zoneIndex].micActive = parseBoolField(doc, onair::kJsonMic);
+	zones[zoneIndex].cameraActive = parseBoolField(doc, onair::kJsonCamera);
 
 	Serial.printf(
 		"%s mic=%d camera=%d\n",
@@ -141,7 +111,7 @@ void connectMQTT() {
 
 	while (!mqtt.connected()) {
 		Serial.printf("MQTT connecting to %s:%d...", MQTT_HOST, MQTT_PORT);
-		const bool ok = mqtt.connect("on-air-sign", MQTT_USER, MQTT_PASS);
+		const bool ok = mqtt.connect(onair::kSignClientID, MQTT_USER, MQTT_PASS);
 		if (ok) {
 			Serial.println(" connected");
 			mqtt.subscribe(MQTT_TOPIC_FILTER);

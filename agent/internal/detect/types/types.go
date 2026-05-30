@@ -1,14 +1,9 @@
 package types
 
-// Status is a snapshot of local media device usage.
-type Status struct {
-	MicActive    bool
-	CameraActive bool
-}
+import "github.com/brianpowell/on-air/protocol"
 
-func (s Status) OnAir() bool {
-	return s.MicActive || s.CameraActive
-}
+// Status is the mic/camera snapshot shared with the MQTT payload.
+type Status = protocol.Status
 
 // Detector reports whether the mic or camera is in use.
 type Detector interface {

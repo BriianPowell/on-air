@@ -6,12 +6,14 @@ WS2812 LED sign that subscribes to `on-air/#` on your **local** MQTT broker and 
 
 | Part | Default |
 |------|---------|
-| Board | Wemos D1 mini / NodeMCU (ESP8266) |
+| Board | NodeMCU v1.0 (ESP-12E, CP2102) — `nodemcuv2` in PlatformIO |
 | LEDs | WS2812 / NeoPixel strip |
-| Data pin | GPIO2 (`D4` on D1 mini) |
+| Data pin | GPIO2 (`D4` on NodeMCU) |
 | Power | 5 V supply sized for your LED count |
 
 Wire data to `D4`, share ground with the ESP, and power the strip separately if you have more than a few pixels.
+
+Using a Wemos D1 mini instead? Build with `pio run -e d1_mini -t upload` (same `D4` / GPIO2 pin).
 
 ## Setup
 
@@ -52,32 +54,22 @@ static const ZoneConfig kZones[] = {
 
 Use `ledCount > 1` for a multi-pixel zone (same color across the range).
 
-## Colors
-
-| Camera | Mic | Color |
-|:------:|:---:|-------|
-| on | on | Red |
-| on | off | Amber |
-| off | on | Green |
-| off | off | Off |
-
-Tune `LED_BRIGHTNESS` (0–255) if the sign is too bright.
-
 ## MQTT payload
 
-Expects retained JSON from the Go agent:
+See [`protocol/README.md`](../../protocol/README.md) for the shared topic, payload, and color contract.
+
+Agents publish retained JSON:
 
 ```json
 {
-  "device": "brian-mac",
-  "on_air": true,
   "mic_active": true,
-  "camera_active": false,
-  "ts": "2026-05-28T14:32:00Z"
+  "camera_active": false
 }
 ```
 
-Colors use `mic_active` and `camera_active` only — not `on_air`.
+## Colors
+
+See [`protocol/README.md`](../../protocol/README.md#led-colors).
 
 ## Notes
 

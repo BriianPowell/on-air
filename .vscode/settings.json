@@ -7,7 +7,6 @@
     "PATH": "${env:HOME}/.goenv/shims:${env:HOME}/.goenv/bin:${env:PATH}"
   },
   "gopls": {
-    "build.buildFlags": ["-mod=readonly"],
-    "build.directory": "agent"
+    "build.buildFlags": ["-mod=readonly"]
   }
 }

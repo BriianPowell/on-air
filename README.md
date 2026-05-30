@@ -8,6 +8,7 @@ Status agent that detects mic/camera usage on your work laptop and publishes an 
 on-air/
 ├── agent/       # Go status agent (MQTT publisher)
 ├── firmware/    # ESP8266 sign firmware
+├── protocol/    # Shared MQTT + LED contract (agent + firmware)
 └── deploy/      # launchd + Task Scheduler examples
 ```
 
@@ -86,50 +87,40 @@ mqtt:
   sensor:
     - name: "Brian on air"
       state_topic: "on-air/brian-mac"
-      value_template: "{{ value_json.on_air }}"
+      value_template: "{{ value_json.mic_active or value_json.camera_active }}"
       json_attributes_topic: "on-air/brian-mac"
       json_attributes_template: "{{ value_json | tojson }}"
 
     - name: "Lauren on air"
       state_topic: "on-air/lauren-win"
-      value_template: "{{ value_json.on_air }}"
+      value_template: "{{ value_json.mic_active or value_json.camera_active }}"
       json_attributes_topic: "on-air/lauren-win"
       json_attributes_template: "{{ value_json | tojson }}"
 ```
 
 Attributes include `mic_active` and `camera_active` for automations or the dashboard.
 
-## MQTT payload
+## MQTT protocol
+
+Topics, payload fields, and LED colors are defined once in [`protocol/README.md`](protocol/README.md).
 
 ```json
 {
-  "device": "brian-mac",
-  "on_air": true,
   "mic_active": true,
-  "camera_active": false,
-  "ts": "2026-05-28T14:32:00Z"
+  "camera_active": false
 }
 ```
 
 Messages are published with QoS 1 and the retain flag so new subscribers get the latest state immediately.
 
-The agent publishes when:
+The agent debounces internally (`on_debounce` / `off_debounce`) and publishes when:
 
-- The debounced `on_air` state changes (after `on_debounce` / `off_debounce`)
+- Debounced on/off transitions (idle publishes `mic_active: false`, `camera_active: false`)
 - `mic_active` or `camera_active` changes while still considered on-air internally
 
 ## LED color matrix
 
-Drive colors from `mic_active` and `camera_active` per person — not `on_air` alone.
-
-| `camera_active` | `mic_active` | Color | Suggested RGB |
-|:-:|:-:|-|-|
-| true | true | Red | `(255, 0, 0)` |
-| true | false | Amber | `(255, 140, 0)` |
-| false | true | Green | `(0, 180, 60)` |
-| false | false | Off | `(0, 0, 0)` |
-
-These values assume WS2812-style RGB LEDs behind a white diffuser. Tune brightness down (e.g. cap red at `(80, 0, 0)`) if the sign is too bright at night.
+See [`protocol/README.md`](protocol/README.md#led-colors). Firmware scales RGB by `LED_BRIGHTNESS`.
 
 ## Detection
 

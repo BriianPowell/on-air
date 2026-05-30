@@ -61,7 +61,7 @@ func main() {
 	if *dryRun {
 		publisher = stdoutPublisher{device: cfg.Device}
 	} else {
-		pub, err := onairmqtt.New(cfg.MQTT, cfg.Device)
+		pub, err := onairmqtt.New(cfg.MQTT)
 		if err != nil {
 			log.Fatalf("mqtt: %v", err)
 		}

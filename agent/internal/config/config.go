@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brianpowell/on-air/protocol"
 	"gopkg.in/yaml.v3"
 )
 
@@ -86,10 +87,10 @@ func (c *Config) ApplyDefaults() {
 		c.MQTT.Broker = "tcp://localhost:1883"
 	}
 	if c.MQTT.Topic == "" && c.Device != "" {
-		c.MQTT.Topic = "on-air/" + c.Device
+		c.MQTT.Topic = protocol.TopicFor(c.Device)
 	}
 	if c.MQTT.ClientID == "" && c.Device != "" {
-		c.MQTT.ClientID = "on-air-agent-" + c.Device
+		c.MQTT.ClientID = protocol.ClientIDFor(c.Device)
 	}
 }
 

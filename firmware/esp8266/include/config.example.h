@@ -1,5 +1,7 @@
 #pragma once
 
+#include "protocol.h"
+
 // Copy to config.h and fill in your values:
 //   cp include/config.example.h include/config.h
 
@@ -12,15 +14,15 @@
 #define MQTT_PORT 1883
 #define MQTT_USER "homeassistant"
 #define MQTT_PASS "your-mqtt-password"
-#define MQTT_TOPIC_FILTER "on-air/#"
+#define MQTT_TOPIC_FILTER onair::kTopicFilter
 
 // --- WS2812 strip ---
-// D4 on NodeMCU / Wemos D1 mini = GPIO2
+// NodeMCU: D4 = GPIO2 (default board in platformio.ini)
 #define LED_PIN 2
 #define LED_COUNT 2
 #define LED_BRIGHTNESS 80
 
-// Map MQTT topic suffixes (after "on-air/") to LED ranges on the strip.
+// Map MQTT topic suffixes (after onair::kTopicPrefix) to LED ranges on the strip.
 // Example: on-air/brian-mac -> pixels 0..0, on-air/lauren-win -> pixels 1..1
 struct ZoneConfig {
 	const char *topicSuffix;
