@@ -45,7 +45,7 @@ jobs:
           GOOS: windows
           GOARCH: amd64
           CGO_ENABLED: '0'
-        run: go build -ldflags="-s -w" -o dist/on-air-agent-windows-amd64.exe ./cmd/on-air-agent
+        run: go build -ldflags="-s -w" -o dist/on-air-agent-windows-amd64.exe ./cmd/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

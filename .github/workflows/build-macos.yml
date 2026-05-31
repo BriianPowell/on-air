@@ -44,13 +44,13 @@ jobs:
         env:
           CGO_ENABLED: '1'
           GOARCH: arm64
-        run: go build -ldflags="-s -w" -o dist/on-air-agent-darwin-arm64 ./cmd/on-air-agent
+        run: go build -ldflags="-s -w" -o dist/on-air-agent-darwin-arm64 ./cmd/
 
       - name: Build darwin/amd64
         env:
           CGO_ENABLED: '1'
           GOARCH: amd64
-        run: go build -ldflags="-s -w" -o dist/on-air-agent-darwin-amd64 ./cmd/on-air-agent
+        run: go build -ldflags="-s -w" -o dist/on-air-agent-darwin-amd64 ./cmd/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

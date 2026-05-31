@@ -32,22 +32,22 @@ cp config.example.yaml config.yaml
 1. Test detection without MQTT:
 
 ```bash
-go run ./cmd/on-air-agent --dry-run
+go run ./cmd --dry-run
 ```
 
 1. Single poll:
 
 ```bash
-go run ./cmd/on-air-agent --once
+go run ./cmd --once
 ```
 
 1. Run with MQTT (requires a broker such as Mosquitto):
 
 ```bash
-go run ./cmd/on-air-agent
+go run ./cmd
 ```
 
-From the repo root (via `go.work`): `go run ./agent/cmd/on-air-agent …`
+From the repo root (via `go.work`): `go run ./agent/cmd …`
 
 ## Config
 
@@ -187,7 +187,7 @@ Unsigned CI binaries may be blocked by Gatekeeper — run `xattr -dr com.apple.q
 
 ```bash
 cd agent
-go build -o on-air-agent ./cmd/on-air-agent
+go build -o on-air-agent ./cmd
 sudo install -m 755 on-air-agent /usr/local/bin/on-air-agent   # or the darwin-* name
 mkdir -p ~/.config/on-air
 cp config.example.yaml ~/.config/on-air/config.yaml   # edit device, mqtt, etc.
@@ -225,7 +225,7 @@ Or build locally:
 
 ```bash
 cd agent
-GOOS=windows GOARCH=amd64 go build -o on-air-agent.exe ./cmd/on-air-agent
+GOOS=windows GOARCH=amd64 go build -o on-air-agent.exe ./cmd
 ```
 
 1. Register the scheduled task (edit `deploy/windows/on-air-agent-task.xml.example` first — replace `DOMAIN\USERNAME` and paths):
@@ -241,14 +241,14 @@ Remove: `schtasks /Delete /TN "on-air-agent" /F`
 
 ```bash
 cd agent
-go build -o on-air-agent ./cmd/on-air-agent
+go build -o on-air-agent ./cmd
 ```
 
 Cross-compile for Windows from macOS:
 
 ```bash
 cd agent
-GOOS=windows GOARCH=amd64 go build -o on-air-agent.exe ./cmd/on-air-agent
+GOOS=windows GOARCH=amd64 go build -o on-air-agent.exe ./cmd
 ```
 
 ### CI

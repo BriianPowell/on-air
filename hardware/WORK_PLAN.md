@@ -90,7 +90,7 @@ Strip 5V/GND ──[1000µF cap]── at strip input
 
 - MQTT broker reachable on home LAN (Home Assistant / Mosquitto)
 - Copy and edit `agent/config.example.yaml` → `config.yaml` per laptop
-- Run agent dry-run / once: `go run ./cmd/on-air-agent --dry-run`
+- Run agent dry-run / once: `go run ./cmd --dry-run`
 - Copy `firmware/esp8266/include/config.example.h` → `config.h`
 - Set Wi-Fi, MQTT host, `kZones`, and `LED_COUNT` in `config.h`
 - *(Optional)* Temporarily test firmware with **no strip** connected — confirm Wi-Fi + MQTT in serial monitor (115200 baud)
