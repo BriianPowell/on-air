@@ -122,14 +122,15 @@ The agent debounces internally (`on_debounce` / `off_debounce`) and publishes wh
 
 On-air per person = `mic_active || camera_active`. Display logic is in firmware (`config.h` + `main.cpp`):
 
-| On-air | Display |
-|:------:|---------|
-| Nobody | Off |
-| One person, mic only | Full strip **amber** |
-| One person, camera on | Full strip **red** |
-| Brian + Lauren | Pixels 0–4 **blue**, pixels 5–9 **green** |
+| On-air | Camera | Display |
+|:------:|:------:|---------|
+| Nobody | — | Off |
+| One person | off | Full strip **red** |
+| One person | on | Full strip **red snake** |
+| Both | off (per side) | Brian **cyan**, Lauren **orange** (solid) |
+| Both | on (per side) | **Snake** on that person's side only |
 
-See [`firmware/esp8266/README.md`](firmware/esp8266/README.md) to tune RGB values.
+See [`firmware/esp8266/README.md`](firmware/esp8266/README.md) to tune colors and `SNAKE_STEP_MS`.
 
 ## Detection
 
@@ -148,7 +149,9 @@ Grant the agent **Microphone** and **Camera** privacy permissions on macOS (Syst
 
 ### Windows camera note
 
-Camera detection reads `HKCU\...\CapabilityAccessManager\ConsentStore\webcam` and treats an app as active when `LastUsedTimeStart > LastUsedTimeStop`. This mirrors how Windows records webcam use but may lag or miss edge cases. Validate on Lauren's machine and report mismatches.
+Camera detection reads `CapabilityAccessManager\ConsentStore\webcam` and treats an app as active when `LastUsedTimeStart > LastUsedTimeStop`. The agent checks **NonPackaged** apps (Zoom, classic Teams) and **Packaged/MSIX** apps (new Teams: `MSTeams_8wekyb3d8bbwe`) in both `HKCU` and `HKLM`.
+
+**Teams in the browser** does not update these keys — use the desktop app for camera detection. In-app camera off/mute may still leave the hardware stream open (same as macOS).
 
 ## Run at login
 

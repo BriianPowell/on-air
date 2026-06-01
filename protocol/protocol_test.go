@@ -29,21 +29,3 @@ func TestTopicSuffix(t *testing.T) {
 		t.Fatalf("TopicSuffix: got %q want empty", got)
 	}
 }
-
-func TestColorFor(t *testing.T) {
-	cases := []struct {
-		mic, camera bool
-		want        Color
-	}{
-		{true, true, Color{255, 0, 0}},
-		{false, true, Color{255, 140, 0}},
-		{true, false, Color{0, 180, 60}},
-		{false, false, Color{}},
-	}
-	for _, tc := range cases {
-		got := ColorFor(tc.mic, tc.camera)
-		if got != tc.want {
-			t.Fatalf("ColorFor(%t,%t) = %+v want %+v", tc.mic, tc.camera, got, tc.want)
-		}
-	}
-}

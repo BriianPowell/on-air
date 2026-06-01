@@ -1,6 +1,6 @@
 # ESP8266 sign firmware
 
-WS2812 LED sign that subscribes to `on-air/#` on your **local** MQTT broker and sets each person's zone from `mic_active` / `camera_active`.
+WS2812 LED sign that subscribes to `on-air/#` on your **local** MQTT broker and renders from `mic_active` / `camera_active`.
 
 ## Hardware
 
@@ -43,29 +43,30 @@ Using a Wemos D1 mini instead? Build with `pio run -e d1_mini -t upload` (same `
 
 ## Zone mapping
 
-Agents publish to `on-air/brian-mac`, `on-air/lauren-win`, etc. Map each suffix to a contiguous run of pixels and a **both-on-air** color:
-
 ```cpp
 #define LED_COUNT 10
 
 static const ZoneConfig kZones[] = {
-    {"brian-mac", 0, 5, 0, 0, 255},    // pixels 0–4, blue when both on-air
-    {"lauren-win", 5, 5, 0, 255, 0},   // pixels 5–9, green when both on-air
+    {"brian-mac", 0, 5, {0, 255, 255}},    // pixels 0–4, cyan when both live
+    {"lauren-win", 5, 5, {255, 55, 0}},    // pixels 5–9, orange when both live
 };
 ```
 
-## Colors
+## Display rules
 
 On-air per person = `mic_active || camera_active`.
 
-| On-air | Display |
-|:------:|---------|
-| Nobody | Off |
-| One person, camera off (mic only) | Full strip **amber** (`SIGN_SOLO_MIC_ONLY_*`) |
-| One person, camera on | Full strip **red** (`SIGN_SOLO_CAMERA_*`) |
-| Both | Brian's zone **blue**, Lauren's zone **green** (`whenBoth*` in `kZones`) |
+| On-air | Camera | Display |
+|:------:|:------:|---------|
+| 0 | — | Off |
+| 1 | off | Full strip **red** (solid) |
+| 1 | on | Full strip **red snake** |
+| 2+ | off (per zone) | That zone's color, solid (Brian **cyan**, Lauren **orange**) |
+| 2+ | on (per zone) | **Snake** on that zone only, in that zone's color |
 
-Tune `LED_BRIGHTNESS` and RGB values in `include/config.h`.
+**Snake:** one lit pixel steps through the zone (or full strip when solo). Tune speed with `SNAKE_STEP_MS` in `config.h`.
+
+Tune `LED_BRIGHTNESS`, `SIGN_SOLO_*`, and zone RGB in `include/config.h`.
 
 ## Notes
 

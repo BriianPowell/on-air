@@ -48,24 +48,3 @@ func TopicSuffix(topic string) string {
 func ClientIDFor(device string) string {
 	return ClientIDPrefix + device
 }
-
-// Color is an unscaled WS2812 RGB value before firmware brightness is applied.
-type Color struct {
-	R uint8 `json:"r"`
-	G uint8 `json:"g"`
-	B uint8 `json:"b"`
-}
-
-// ColorFor maps mic/camera state to the sign color matrix.
-func ColorFor(micActive, cameraActive bool) Color {
-	switch {
-	case cameraActive && micActive:
-		return Color{R: 255, G: 0, B: 0}
-	case cameraActive:
-		return Color{R: 255, G: 140, B: 0}
-	case micActive:
-		return Color{R: 0, G: 180, B: 60}
-	default:
-		return Color{}
-	}
-}

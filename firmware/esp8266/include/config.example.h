@@ -22,30 +22,24 @@
 #define LED_COUNT 10
 #define LED_BRIGHTNESS 80
 
-// Full-strip colors when exactly one person is on-air.
-#define SIGN_SOLO_CAMERA_R 255
-#define SIGN_SOLO_CAMERA_G 0
-#define SIGN_SOLO_CAMERA_B 0
+// One person on-air: full strip uses this color (solid or snake when camera on).
+#define SIGN_SOLO_R 255
+#define SIGN_SOLO_G 0
+#define SIGN_SOLO_B 0
 
-// Mic-only solo: lower G = more orange, higher G = more yellow (try 40–80).
-#define SIGN_SOLO_MIC_ONLY_R 255
-#define SIGN_SOLO_MIC_ONLY_G 55
-#define SIGN_SOLO_MIC_ONLY_B 0
+// Snake animation speed (one step per zone per interval).
+#define SNAKE_STEP_MS 120
 
-// Map MQTT topic suffixes (after onair::kTopicPrefix) to LED ranges on the strip.
-// whenBoth* is used when two or more people are on-air at the same time.
 struct ZoneConfig {
 	const char *topicSuffix;
 	uint16_t ledFirst;
 	uint16_t ledCount;
-	uint8_t whenBothR;
-	uint8_t whenBothG;
-	uint8_t whenBothB;
+	onair::Color color;
 };
 
 static const ZoneConfig kZones[] = {
-	{"brian-mac", 0, 5, 0, 0, 255},    // blue — left half
-	{"lauren-win", 5, 5, 0, 255, 0},   // green — right half
+	{"brian-mac", 0, 5, {0, 255, 255}},    // cyan — left half
+	{"lauren-win", 5, 5, {255, 55, 0}},    // orange — right half
 };
 
 static const size_t kZoneCount = sizeof(kZones) / sizeof(kZones[0]);

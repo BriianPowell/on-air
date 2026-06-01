@@ -41,12 +41,15 @@ Default layout (`LED_COUNT 10`):
 | 0–4 | Brian | `brian-mac` |
 | 5–9 | Lauren | `lauren-win` |
 
-| On-air count | Display |
-|:------------:|---------|
-| 0 | Off |
-| 1, camera off (mic only) | Full strip **amber** (`SIGN_SOLO_MIC_ONLY_*`) |
-| 1, camera on | Full strip **red** (`SIGN_SOLO_CAMERA_*`) |
-| 2+ | Each zone uses `whenBoth*` RGB from `kZones` (default: Brian **blue**, Lauren **green**) |
+| On-air count | Camera | Display |
+|:------------:|:------:|---------|
+| 0 | — | Off |
+| 1 | off | Full strip **red** (solid) |
+| 1 | on | Full strip **red snake** |
+| 2+ | off (per zone) | Zone color, solid (Brian **cyan**, Lauren **orange**) |
+| 2+ | on (per zone) | **Snake** on that zone only |
+
+Snake = one pixel stepping through the zone. Tune `SNAKE_STEP_MS` and colors in `firmware/esp8266/include/config.h`.
 
 Tune colors and pixel ranges in `firmware/esp8266/include/config.h`. See [`firmware/esp8266/README.md`](../firmware/esp8266/README.md).
 

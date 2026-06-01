@@ -20,19 +20,6 @@ struct Color {
 	uint8_t b;
 };
 
-inline Color colorFor(bool micActive, bool cameraActive) {
-	if (cameraActive && micActive) {
-		return {255, 0, 0};
-	}
-	if (cameraActive) {
-		return {255, 140, 0};
-	}
-	if (micActive) {
-		return {0, 180, 60};
-	}
-	return {0, 0, 0};
-}
-
 inline int zoneIndexForTopic(const char *topic, const char *const *suffixes, size_t count) {
 	if (strncmp(topic, kTopicPrefix, strlen(kTopicPrefix)) != 0) {
 		return -1;
