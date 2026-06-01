@@ -19,20 +19,33 @@
 // --- WS2812 strip ---
 // NodeMCU: D4 = GPIO2 (default board in platformio.ini)
 #define LED_PIN 2
-#define LED_COUNT 2
+#define LED_COUNT 10
 #define LED_BRIGHTNESS 80
 
+// Full-strip colors when exactly one person is on-air.
+#define SIGN_SOLO_CAMERA_R 255
+#define SIGN_SOLO_CAMERA_G 0
+#define SIGN_SOLO_CAMERA_B 0
+
+// Mic-only solo: lower G = more orange, higher G = more yellow (try 40–80).
+#define SIGN_SOLO_MIC_ONLY_R 255
+#define SIGN_SOLO_MIC_ONLY_G 55
+#define SIGN_SOLO_MIC_ONLY_B 0
+
 // Map MQTT topic suffixes (after onair::kTopicPrefix) to LED ranges on the strip.
-// Example: on-air/brian-mac -> pixels 0..0, on-air/lauren-win -> pixels 1..1
+// whenBoth* is used when two or more people are on-air at the same time.
 struct ZoneConfig {
 	const char *topicSuffix;
 	uint16_t ledFirst;
 	uint16_t ledCount;
+	uint8_t whenBothR;
+	uint8_t whenBothG;
+	uint8_t whenBothB;
 };
 
 static const ZoneConfig kZones[] = {
-	{"brian-mac", 0, 1},
-	{"lauren-win", 1, 1},
+	{"brian-mac", 0, 5, 0, 0, 255},    // blue — left half
+	{"lauren-win", 5, 5, 0, 255, 0},   // green — right half
 };
 
 static const size_t kZoneCount = sizeof(kZones) / sizeof(kZones[0]);

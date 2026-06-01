@@ -4,10 +4,12 @@ Build plan for the ESP8266 + addressable LED sign that pairs with the Go agent a
 
 ## Inventory: what you already have
 
+
 | Item                        | Works for this project?        | Notes                                                                                                                                                                                                                                      |
 | --------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **NodeMCU CP2102 ESP-12E**  | **Yes**                        | Default board in `platformio.ini` (`nodemcuv2`). Use **D4 (GPIO2)** for LED data. Flash via micro-USB; CP2102 driver is standard on macOS.                                                                                                 |
 | **100–240 V AC LED strips** | **No** (for per-person status) | Mains strips are **not individually addressable**. They are on/off (or dimmable) only — you cannot show red / amber / green per zone or per person. They also run at **dangerous mains voltage**, not the **5 V DC** the firmware expects. |
+
 
 **Bottom line:** Your NodeMCU is the right brain. You need a **low-voltage addressable strip** (WS2812B or similar) for the status sign. Keep the AC strips for another project (under-cabinet lighting, etc.) or as a separate non-MQTT ambient light.
 
@@ -19,15 +21,18 @@ The firmware uses **Adafruit NeoPixel** with **WS2812B timing** (`NEO_GRB + NEO_
 
 ### Pick one approach
 
+
 | Approach                                                     | Best for                       | Diffusion                                | Cost |
 | ------------------------------------------------------------ | ------------------------------ | ---------------------------------------- | ---- |
 | **A. WS2812B neon flex** (“360°” silicone tube)              | Clean glow, minimal build work | Excellent — light wraps in the tube      | $$   |
 | **B. WS2812B 5050 strip + aluminum channel + opal diffuser** | Rectangular sign, custom width | Very good — frosted cover spreads pixels | $    |
 | **C. WS2812B COB strip + diffuser panel**                    | Very even “light bar” look     | Excellent — COB is already smooth        | $$   |
 
+
 **Recommendation for a household “on air” sign:** **Option B** — 30 LEDs/m WS2812B in a ~½″ aluminum channel with an opal polycarbonate diffuser. Cut to length, mount behind white acrylic or vinyl lettering. Easy to expand zones (`ledCount > 1` in firmware).
 
 ### Specs to order
+
 
 | Spec      | Suggested value                              | Why                                                      |
 | --------- | -------------------------------------------- | -------------------------------------------------------- |
@@ -37,11 +42,13 @@ The firmware uses **Adafruit NeoPixel** with **WS2812B timing** (`NEO_GRB + NEO_
 | IP rating | IP30 indoor is fine                          | Sign is indoors                                          |
 | Wire      | Pre-soldered **5 V, GND, DIN** at one end    | Easier first build                                       |
 
+
 ### Optional upgrade (longer cable runs)
 
 If the strip is **far from the NodeMCU** or you have **>30 pixels**, consider **WS2815** (12 V, backup data line) — **requires firmware/library changes**. Stick with **WS2812B** for v1.
 
 ### Parts to buy (minimal BOM)
+
 
 | Qty | Part                                                                   | Est.    |
 | --- | ---------------------------------------------------------------------- | ------- |
@@ -53,6 +60,7 @@ If the strip is **far from the NodeMCU** or you have **>30 pixels**, consider **
 | —   | 22 AWG hookup wire (red/black/green)                                   | on hand |
 | —   | *(Option B)* Aluminum channel + opal diffuser, length matched to strip | $10–20  |
 | —   | *(Option B)* White acrylic / PVC face for the sign                     | $5–15   |
+
 
 You likely **do not** need a logic level shifter for bench testing with 2–8 pixels and a short data wire; add it for the final mounted sign.
 
@@ -72,11 +80,13 @@ NodeMCU D4 (GPIO2) ──[330Ω]──► Level shifter IN ──► Strip DIN
 Strip 5V/GND ──[1000µF cap]── at strip input
 ```
 
+
 | NodeMCU label | GPIO  | Connect to                                 |
 | ------------- | ----- | ------------------------------------------ |
 | **D4**        | GPIO2 | WS2812 data (via 330 Ω)                    |
 | **G**         | GND   | Strip GND, PSU −                           |
 | **VIN / 5V**  | —     | 5 V supply (or power NodeMCU via USB only) |
+
 
 **PlatformIO note:** Default env is `nodemcuv2` (NodeMCU). Wemos D1 mini users: `pio run -e d1_mini -t upload` — same **D4 / GPIO2** pin.
 
@@ -179,6 +189,7 @@ Reasonable alternatives:
 
 ## Risk checklist
 
+
 | Risk                          | Mitigation                                                                        |
 | ----------------------------- | --------------------------------------------------------------------------------- |
 | ESP resets when LEDs turn on  | Larger PSU; power strip directly, not through NodeMCU 5 V pin                     |
@@ -187,9 +198,11 @@ Reasonable alternatives:
 | GPIO2 boot issues             | Use **D4 only**; avoid pulling GPIO2 low at boot                                  |
 | Zone mismatch                 | Topic suffix in agent `device` must match `kZones` entry exactly                  |
 
+
 ---
 
 ## Timeline (rough)
+
 
 | Phase                       | Effort                                |
 | --------------------------- | ------------------------------------- |
@@ -199,6 +212,7 @@ Reasonable alternatives:
 | Phase 3 — Final assembly    | 3–6 hours                             |
 | Phase 4 — Tuning            | 30 min ongoing                        |
 
+
 ---
 
 ## References in this repo
@@ -207,3 +221,4 @@ Reasonable alternatives:
 - Config template: `[firmware/esp8266/include/config.example.h](../firmware/esp8266/include/config.example.h)`
 - Agent config: `[agent/config.example.yaml](../agent/config.example.yaml)`
 - Architecture + colors: `[README.md](../README.md)`
+

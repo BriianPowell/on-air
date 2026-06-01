@@ -28,16 +28,27 @@ Field names are defined in `protocol.go` / `protocol.h` (`mic_active`, `camera_a
 
 The agent debounces internally; subscribers only see mic/camera hardware state.
 
-## LED colors
+**On-air** (for sign display) = `mic_active || camera_active`.
 
-Applied by firmware from `mic_active` + `camera_active`:
+## Sign display (firmware)
 
-| Camera | Mic | Color | RGB |
-|:------:|:---:|-------|-----|
-| on | on | Red | `(255, 0, 0)` |
-| on | off | Amber | `(255, 140, 0)` |
-| off | on | Green | `(0, 180, 60)` |
-| off | off | Off | `(0, 0, 0)` |
+LED colors are **not** part of the MQTT payload — the ESP8266 derives on-air state from the fields above and applies display rules in `firmware/esp8266/src/main.cpp` and `include/config.h`.
+
+Default layout (`LED_COUNT 10`):
+
+| Pixels | Person | Topic suffix |
+|--------|--------|--------------|
+| 0–4 | Brian | `brian-mac` |
+| 5–9 | Lauren | `lauren-win` |
+
+| On-air count | Display |
+|:------------:|---------|
+| 0 | Off |
+| 1, camera off (mic only) | Full strip **amber** (`SIGN_SOLO_MIC_ONLY_*`) |
+| 1, camera on | Full strip **red** (`SIGN_SOLO_CAMERA_*`) |
+| 2+ | Each zone uses `whenBoth*` RGB from `kZones` (default: Brian **blue**, Lauren **green**) |
+
+Tune colors and pixel ranges in `firmware/esp8266/include/config.h`. See [`firmware/esp8266/README.md`](../firmware/esp8266/README.md).
 
 Firmware scales RGB by `LED_BRIGHTNESS` before sending to the strip.
 

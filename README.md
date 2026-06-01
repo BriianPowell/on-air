@@ -102,7 +102,7 @@ Attributes include `mic_active` and `camera_active` for automations or the dashb
 
 ## MQTT protocol
 
-Topics, payload fields, and LED colors are defined once in [`protocol/README.md`](protocol/README.md).
+Topics and payload fields are defined in [`protocol/README.md`](protocol/README.md). Sign colors are configured in firmware — see [Sign colors](#sign-colors) below.
 
 ```json
 {
@@ -118,9 +118,18 @@ The agent debounces internally (`on_debounce` / `off_debounce`) and publishes wh
 - Debounced on/off transitions (idle publishes `mic_active: false`, `camera_active: false`)
 - `mic_active` or `camera_active` changes while still considered on-air internally
 
-## LED color matrix
+## Sign colors
 
-See [`protocol/README.md`](protocol/README.md#led-colors). Firmware scales RGB by `LED_BRIGHTNESS`.
+On-air per person = `mic_active || camera_active`. Display logic is in firmware (`config.h` + `main.cpp`):
+
+| On-air | Display |
+|:------:|---------|
+| Nobody | Off |
+| One person, mic only | Full strip **amber** |
+| One person, camera on | Full strip **red** |
+| Brian + Lauren | Pixels 0–4 **blue**, pixels 5–9 **green** |
+
+See [`firmware/esp8266/README.md`](firmware/esp8266/README.md) to tune RGB values.
 
 ## Detection
 

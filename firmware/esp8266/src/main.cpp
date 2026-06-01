@@ -44,26 +44,82 @@ bool parseBoolField(JsonDocument &doc, const char *key) {
 	return doc[key].as<bool>();
 }
 
-void applyZoneColor(size_t zoneIndex) {
-	const ZoneConfig &zone = kZones[zoneIndex];
-	const onair::Color color = zones[zoneIndex].known
-		? onair::colorFor(zones[zoneIndex].micActive, zones[zoneIndex].cameraActive)
-		: onair::Color{};
+bool zoneOnAir(size_t zoneIndex) {
+	if (!zones[zoneIndex].known) {
+		return false;
+	}
+	return zones[zoneIndex].micActive || zones[zoneIndex].cameraActive;
+}
 
-	const uint32_t pixelColor = scaleColor(color.r, color.g, color.b);
-	for (uint16_t i = 0; i < zone.ledCount; i++) {
-		const uint16_t pixel = zone.ledFirst + i;
-		if (pixel < LED_COUNT) {
-			strip.setPixelColor(pixel, pixelColor);
+size_t countOnAir() {
+	size_t count = 0;
+	for (size_t i = 0; i < kZoneCount; i++) {
+		if (zoneOnAir(i)) {
+			count++;
 		}
 	}
+	return count;
+}
+
+int zoneIndexForPixel(uint16_t pixel) {
+	for (size_t i = 0; i < kZoneCount; i++) {
+		const ZoneConfig &zone = kZones[i];
+		if (pixel >= zone.ledFirst && pixel < zone.ledFirst + zone.ledCount) {
+			return static_cast<int>(i);
+		}
+	}
+	return -1;
+}
+
+onair::Color soloColorForActiveZone() {
+	for (size_t i = 0; i < kZoneCount; i++) {
+		if (!zoneOnAir(i)) {
+			continue;
+		}
+		if (zones[i].cameraActive) {
+			return {SIGN_SOLO_CAMERA_R, SIGN_SOLO_CAMERA_G, SIGN_SOLO_CAMERA_B};
+		}
+		return {SIGN_SOLO_MIC_ONLY_R, SIGN_SOLO_MIC_ONLY_G, SIGN_SOLO_MIC_ONLY_B};
+	}
+	return {};
+}
+
+onair::Color colorForPixel(uint16_t pixel, size_t onAirCount) {
+	if (onAirCount == 0) {
+		return {};
+	}
+
+	if (onAirCount == 1) {
+		return soloColorForActiveZone();
+	}
+
+	const int zoneIndex = zoneIndexForPixel(pixel);
+	if (zoneIndex < 0 || !zoneOnAir(static_cast<size_t>(zoneIndex))) {
+		return {};
+	}
+
+	const ZoneConfig &zone = kZones[zoneIndex];
+	return {zone.whenBothR, zone.whenBothG, zone.whenBothB};
 }
 
 void renderAll() {
-	for (size_t i = 0; i < kZoneCount; i++) {
-		applyZoneColor(i);
+	const size_t onAirCount = countOnAir();
+
+	for (uint16_t pixel = 0; pixel < LED_COUNT; pixel++) {
+		const onair::Color color = colorForPixel(pixel, onAirCount);
+		strip.setPixelColor(pixel, scaleColor(color.r, color.g, color.b));
 	}
+
 	strip.show();
+
+	Serial.printf("render on_air=%u", static_cast<unsigned>(onAirCount));
+	for (size_t i = 0; i < kZoneCount; i++) {
+		Serial.printf(
+			" %s=%d",
+			kZones[i].topicSuffix,
+			zoneOnAir(i) ? 1 : 0);
+	}
+	Serial.println();
 }
 
 void mqttCallback(char *topic, byte *payload, unsigned int length) {
