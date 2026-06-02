@@ -44,11 +44,11 @@ Using a Wemos D1 mini instead? Build with `pio run -e d1_mini -t upload` (same `
 ## Zone mapping
 
 ```cpp
-#define LED_COUNT 10
+#define LED_COUNT 56
 
 static const ZoneConfig kZones[] = {
-    {"brian-mac", 0, 5, {0, 255, 255}},    // pixels 0–4, cyan when both live
-    {"lauren-win", 5, 5, {255, 55, 0}},    // pixels 5–9, orange when both live
+    {"brian-mac", 0, 28, {0, 255, 255}},    // pixels 0–27, cyan when both live
+    {"lauren-win", 28, 28, {255, 55, 0}},   // pixels 28–55, orange when both live
 };
 ```
 
@@ -60,11 +60,11 @@ On-air per person = `mic_active || camera_active`.
 |:------:|:------:|---------|
 | 0 | — | Off |
 | 1 | off | Full strip **red** (solid) |
-| 1 | on | Full strip **red snake** |
+| 1 | on | Full strip **red flash** |
 | 2+ | off (per zone) | That zone's color, solid (Brian **cyan**, Lauren **orange**) |
-| 2+ | on (per zone) | **Snake** on that zone only, in that zone's color |
+| 2+ | on (per zone) | **Flash** on that zone only, in that zone's color |
 
-**Snake:** one lit pixel steps through the zone (or full strip when solo). Tune speed with `SNAKE_STEP_MS` in `config.h`.
+**Camera flash:** zone toggles on/off (400 ms per half-cycle by default). Tune `CAMERA_FLASH_MS` and colors in `config.h`.
 
 Tune `LED_BRIGHTNESS`, `SIGN_SOLO_*`, and zone RGB in `include/config.h`.
 

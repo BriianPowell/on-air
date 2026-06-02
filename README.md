@@ -126,11 +126,11 @@ On-air per person = `mic_active || camera_active`. Display logic is in firmware 
 |:------:|:------:|---------|
 | Nobody | — | Off |
 | One person | off | Full strip **red** |
-| One person | on | Full strip **red snake** |
+| One person | on | Full strip **red flash** |
 | Both | off (per side) | Brian **cyan**, Lauren **orange** (solid) |
-| Both | on (per side) | **Snake** on that person's side only |
+| Both | on (per side) | **Flash** on that person's side only |
 
-See [`firmware/esp8266/README.md`](firmware/esp8266/README.md) to tune colors and `SNAKE_STEP_MS`.
+See [`firmware/esp8266/README.md`](firmware/esp8266/README.md) to tune colors and `CAMERA_FLASH_MS`.
 
 ## Detection
 

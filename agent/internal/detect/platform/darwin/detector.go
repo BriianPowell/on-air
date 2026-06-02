@@ -11,9 +11,6 @@ package darwin
 #include <stdlib.h>
 
 static int isIgnoredCameraUID(CFStringRef uid) {
-	if (uid == NULL) {
-		return 1;
-	}
 	if (CFStringCompare(uid, CFSTR("obs-virtual-cam-device"), kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
 		return 1;
 	}
@@ -76,13 +73,19 @@ static int cameraInUse(void) {
 		CFStringRef uid = NULL;
 		dataUsed = 0;
 		status = CMIOObjectGetPropertyData(devices[i], &propertyAddress, 0, NULL, dataSize, &dataUsed, &uid);
-		if (status != noErr || uid == NULL || isIgnoredCameraUID(uid)) {
+		if (status != noErr) {
 			if (uid != NULL) {
 				CFRelease(uid);
 			}
 			continue;
 		}
-		CFRelease(uid);
+		if (uid != NULL && isIgnoredCameraUID(uid)) {
+			CFRelease(uid);
+			continue;
+		}
+		if (uid != NULL) {
+			CFRelease(uid);
+		}
 
 		propertyAddress.mSelector = kCMIODevicePropertyDeviceIsRunningSomewhere;
 		propertyAddress.mScope = kCMIOObjectPropertyScopeWildcard;

@@ -16,7 +16,7 @@ struct ZoneState {
 
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 ZoneState zones[kZoneCount];
-uint8_t snakeFrame = 0;
+uint8_t flashFrame = 0;
 unsigned long lastAnimMs = 0;
 
 constexpr onair::Color kSignSoloColor = {SIGN_SOLO_R, SIGN_SOLO_G, SIGN_SOLO_B};
@@ -38,7 +38,22 @@ int zoneIndexForTopic(const char *topic) {
 }
 
 bool parseBoolField(JsonDocument &doc, const char *key) {
-	return doc[key].is<bool>() && doc[key].as<bool>();
+	if (doc[key].isNull()) {
+		return false;
+	}
+	if (doc[key].is<bool>()) {
+		return doc[key].as<bool>();
+	}
+	if (doc[key].is<int>() || doc[key].is<long>()) {
+		return doc[key].as<int>() != 0;
+	}
+	if (doc[key].is<const char *>()) {
+		const char *text = doc[key].as<const char *>();
+		return text != nullptr &&
+			(strcmp(text, "true") == 0 || strcmp(text, "1") == 0);
+	}
+
+	return false;
 }
 
 bool zoneOnAir(size_t zoneIndex) {
@@ -78,29 +93,23 @@ void renderSolid(uint16_t first, uint16_t count, const onair::Color &color) {
 	}
 }
 
-void renderSnake(uint16_t first, uint16_t count, const onair::Color &color, uint8_t frame) {
-	if (count == 0) {
+void renderFlash(uint16_t first, uint16_t count, const onair::Color &color, uint8_t frame) {
+	if (count == 0 || (frame & 1) == 0) {
 		return;
 	}
-
-	const uint32_t lit = toPixelColor(color);
-	const uint16_t head = frame % count;
-
-	for (uint16_t i = 0; i < count; i++) {
-		strip.setPixelColor(first + i, i == head ? lit : 0);
-	}
+	renderSolid(first, count, color);
 }
 
-void renderSegment(uint16_t first, uint16_t count, const onair::Color &color, bool snake) {
-	if (snake) {
-		renderSnake(first, count, color, snakeFrame);
+void renderSegment(uint16_t first, uint16_t count, const onair::Color &color, bool flash) {
+	if (flash) {
+		renderFlash(first, count, color, flashFrame);
 	} else {
 		renderSolid(first, count, color);
 	}
 }
 
 void logRenderState(size_t onAirCount) {
-	Serial.printf("render on_air=%u snake=%d", static_cast<unsigned>(onAirCount), anyCameraOnAir());
+	Serial.printf("render on_air=%u flash=%d", static_cast<unsigned>(onAirCount), anyCameraOnAir());
 	for (size_t i = 0; i < kZoneCount; i++) {
 		Serial.printf(
 			" %s=%d cam=%d",
@@ -165,9 +174,18 @@ void signHandleMqtt(char *topic, byte *payload, unsigned int length) {
 		return;
 	}
 
+	const bool micActive = parseBoolField(doc, onair::kJsonMic);
+	const bool cameraActive = parseBoolField(doc, onair::kJsonCamera);
+	const bool cameraTurnedOn = cameraActive && !zones[zoneIndex].cameraActive;
+
 	zones[zoneIndex].known = true;
-	zones[zoneIndex].micActive = parseBoolField(doc, onair::kJsonMic);
-	zones[zoneIndex].cameraActive = parseBoolField(doc, onair::kJsonCamera);
+	zones[zoneIndex].micActive = micActive;
+	zones[zoneIndex].cameraActive = cameraActive;
+
+	if (cameraTurnedOn) {
+		flashFrame = 1;
+		lastAnimMs = millis();
+	}
 
 	Serial.printf(
 		"%s mic=%d camera=%d\n",
@@ -184,11 +202,11 @@ void signTick() {
 	}
 
 	const unsigned long now = millis();
-	if (now - lastAnimMs < SNAKE_STEP_MS) {
+	if (now - lastAnimMs < CAMERA_FLASH_MS) {
 		return;
 	}
 
 	lastAnimMs = now;
-	snakeFrame++;
+	flashFrame++;
 	render(false);
 }
