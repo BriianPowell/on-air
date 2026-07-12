@@ -8,26 +8,35 @@ import (
 
 	"github.com/brianpowell/on-air/internal/config"
 	"github.com/brianpowell/on-air/internal/detect"
+	"github.com/brianpowell/on-air/internal/network"
 )
 
 type Publisher interface {
 	Publish(onAir bool, status detect.Status) error
 }
 
+type NetworkGate interface {
+	Allowed() (bool, error)
+}
+
 type Agent struct {
-	cfg           config.Config
-	detector      detect.Detector
-	publisher     Publisher
-	onAir         bool
-	lastPublished detect.Status
-	published     bool
+	cfg                config.Config
+	detector           detect.Detector
+	publisher          Publisher
+	networkGate        NetworkGate
+	onAir              bool
+	lastPublished      detect.Status
+	published          bool
+	networkGateKnown   bool
+	networkGateAllowed bool
 }
 
 func New(cfg config.Config, detector detect.Detector, publisher Publisher) *Agent {
 	return &Agent{
-		cfg:       cfg,
-		detector:  detector,
-		publisher: publisher,
+		cfg:         cfg,
+		detector:    detector,
+		publisher:   publisher,
+		networkGate: network.NewGate(cfg.AllowedNetworks),
 	}
 }
 
@@ -54,6 +63,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("poll detector: %w", err)
 		}
+		status = a.applyNetworkGate(status)
 
 		nextOnAir, onAirChanged := a.nextState(status, &activeSince, &idleSince, &haveActiveSince, &haveIdleSince)
 		if a.shouldPublish(nextOnAir, status, onAirChanged) {
@@ -121,6 +131,29 @@ func (a *Agent) shouldPublish(nextOnAir bool, status detect.Status, onAirChanged
 		return true
 	}
 	return false
+}
+
+func (a *Agent) applyNetworkGate(status detect.Status) detect.Status {
+	if a.networkGate == nil {
+		return status
+	}
+
+	allowed, err := a.networkGate.Allowed()
+	if err != nil {
+		log.Printf("network gate failed; suppressing on-air status: %v", err)
+		allowed = false
+	}
+
+	if !a.networkGateKnown || a.networkGateAllowed != allowed {
+		log.Printf("network gate allowed=%t", allowed)
+		a.networkGateKnown = true
+		a.networkGateAllowed = allowed
+	}
+
+	if !allowed {
+		return detect.Status{}
+	}
+	return status
 }
 
 func (a *Agent) publish(onAir bool, status detect.Status) error {

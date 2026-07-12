@@ -57,6 +57,7 @@ See `agent/config.example.yaml`. Key fields:
 - `mqtt.broker` — `tcp://` for local LAN; `ssl://host:443` for TLS (e.g. over work VPN when 8883 is blocked)
 - `mqtt.topic` — defaults to `on-air/{device}` if omitted
 - `mqtt.tls` — optional `ca_file` / `insecure_skip_verify` overrides
+- `allowed_networks` — optional CIDR/exact-IP whitelist for publishing active status only from home/VPN networks
 - `on_debounce` / `off_debounce` — avoid flicker when hardware state flaps
 
 ## Multi-user sign
@@ -117,6 +118,16 @@ The agent debounces internally (`on_debounce` / `off_debounce`) and publishes wh
 
 - Debounced on/off transitions (idle publishes `mic_active: false`, `camera_active: false`)
 - `mic_active` or `camera_active` changes while still considered on-air internally
+
+Set `allowed_networks` if the agent should only broadcast active status from home. Entries are matched against local network interface IPs on macOS and Windows, so use your home LAN CIDR and/or the IP range assigned by your VPN:
+
+```yaml
+allowed_networks:
+  - 10.0.2.0/24
+  - 10.16.24.0/24
+```
+
+When this list is configured and no local interface matches, the agent treats mic/camera as idle. If the retained MQTT state was on, it will publish an off state after `off_debounce` instead of leaving the sign stuck on.
 
 ## Sign colors
 

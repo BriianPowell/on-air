@@ -22,6 +22,12 @@ type recordingPublisher struct {
 	events []publishEvent
 }
 
+type staticNetworkGate bool
+
+func (s staticNetworkGate) Allowed() (bool, error) {
+	return bool(s), nil
+}
+
 type publishEvent struct {
 	onAir  bool
 	status detect.Status
@@ -145,6 +151,41 @@ func TestShouldNotPublishActiveChangeWhileOff(t *testing.T) {
 	status := detect.Status{CameraActive: true}
 	if a.shouldPublish(false, status, false) {
 		t.Fatal("expected no publish for active state change before on debounce completes")
+	}
+}
+
+func TestNetworkGateSuppressesActiveStatus(t *testing.T) {
+	a := New(config.Default("test"), fakeDetector{}, nil)
+	a.networkGate = staticNetworkGate(false)
+
+	status := a.applyNetworkGate(detect.Status{MicActive: true, CameraActive: true})
+	if status.OnAir() {
+		t.Fatalf("expected blocked network gate to suppress active status, got %+v", status)
+	}
+}
+
+func TestRunDoesNotPublishActiveStatusWhenNetworkBlocked(t *testing.T) {
+	cfg := config.Default("test")
+	cfg.PollInterval = 10 * time.Millisecond
+	cfg.OnDebounce = 20 * time.Millisecond
+	cfg.OffDebounce = 20 * time.Millisecond
+
+	pub := &recordingPublisher{}
+	a := New(cfg, fakeDetector{status: detect.Status{MicActive: true}}, pub)
+	a.networkGate = staticNetworkGate(false)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	if err := a.Run(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Run returned unexpected error: %v", err)
+	}
+
+	if len(pub.events) != 1 {
+		t.Fatalf("expected only initial off publish while blocked, got %d: %+v", len(pub.events), pub.events)
+	}
+	if pub.events[0].onAir || pub.events[0].status.OnAir() {
+		t.Fatalf("expected initial publish to be off, got %+v", pub.events[0])
 	}
 }
 

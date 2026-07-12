@@ -14,6 +14,13 @@ mqtt:
   #   ca_file: /path/to/ca.pem
   #   insecure_skip_verify: false
 
+# Optional: only publish active mic/camera state when this machine has a local
+# interface IP in one of these networks. Use your home LAN and/or VPN-assigned
+# network. Leave empty to publish from any network.
+# allowed_networks:
+#   - 10.0.2.0/24
+#   - 10.16.24.0/24
+
 # How often to poll mic/camera state.
 poll_interval: 1s
 

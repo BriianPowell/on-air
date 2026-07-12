@@ -9,13 +9,20 @@ repos:
         files: ^agent/go\.(mod|sum)$
       - id: go-vet-repo-mod
         files: ^agent/
-      - id: go-test-repo-mod
-        files: ^agent/
       - id: go-build-repo-mod
         files: ^agent/
 
   - repo: local
     hooks:
+      - id: go-test-all
+        name: go-test-all
+        entry: >
+          bash -c 'export PATH="${HOME}/.goenv/shims:${HOME}/.goenv/bin:${PATH}"
+          && go test ./agent/... ./protocol/...'
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: go-revive
         name: go-revive
         entry: >
