@@ -16,9 +16,9 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
           cache-dependency-path: agent/go.sum
@@ -33,9 +33,9 @@ jobs:
       run:
         working-directory: agent
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: .go-version
           cache-dependency-path: agent/go.sum
@@ -48,7 +48,7 @@ jobs:
         run: go build -ldflags="-s -w" -o dist/on-air-agent-windows-amd64.exe ./cmd/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: on-air-agent-windows
           path: agent/dist/on-air-agent-windows-amd64.exe
